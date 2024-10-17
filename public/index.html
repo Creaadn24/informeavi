@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NeuroEmotion - Avicampo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f0f0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: #333;
+        text-align: center;
+      }
+
+      .graficas-container {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 30px;
+      }
+
+      .grafica {
+        width: 30%;
+        background-color: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .canvas-container {
+        position: relative;
+        margin: auto;
+        height: 200px;
+        width: 200px;
+      }
+
+      .progreso-texto {
+        margin-top: 10px;
+        font-weight: bold;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 20px;
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+      }
+
+      th {
+        background-color: #db4700;
+        color: white;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+
+      .mas-info {
+        background-color: #008cba;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 3px;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+      }
+
+      .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 800px;
+      }
+
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+      }
+
+      .close:hover,
+      .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .subtable {
+        margin-left: 20px;
+        width: calc(100% - 20px);
+      }
+
+      /* Estilos para el contenedor del select */
+      .filtros {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      /* Estilos base para el select */
+      #regionalFilter {
+        padding: 10px 15px;
+        font-size: 16px;
+        border: 2px solid #db4700;
+        border-radius: 25px;
+        background-color: white;
+        color: #333;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.3s ease;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        width: 200px;
+      }
+
+      /* Estilo para el ícono de flecha personalizado */
+      .filtros::after {
+        content: "\25BC";
+        position: absolute;
+        top: 50%;
+        right: 15px;
+        transform: translateY(-50%);
+        color: #db4700;
+        pointer-events: none;
+      }
+
+      /* Efecto hover para el select */
+      #regionalFilter:hover {
+        border-color: #c23e00;
+        box-shadow: 0 2px 5px rgba(219, 71, 0, 0.2);
+      }
+
+      /* Estilo para el select cuando está enfocado */
+      #regionalFilter:focus {
+        border-color: #c23e00;
+        box-shadow: 0 0 0 2px rgba(219, 71, 0, 0.2);
+      }
+
+      /* Estilos para las opciones del select */
+      #regionalFilter option {
+        background-color: white;
+        color: #333;
+      }
+
+      /* Estilo responsivo para pantallas pequeñas */
+      @media (max-width: 600px) {
+        #regionalFilter {
+          width: 80%;
+        }
+      }
+
+      .busqueda{
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      .busqueda select {
+        padding: 10px;
+        border: 2px solid #db4700;
+        border-radius: 25px;
+        margin-right: 10px; /* Espacio entre el select y la barra de búsqueda */
+        background-color: #ffffff;
+        color: #333;
+        outline: none;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .busqueda input {
+        padding: 10px 20px;
+        width: 100%;
+        max-width: 500px;
+        font-size: 16px;
+        border: 2px solid #db4700; 
+        border-radius: 25px; 
+        outline: none;
+        transition: all 0.3s ease;
+        background-color: #ffffff;
+        color: #333; 
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .busqueda input::placeholder{
+        color: #999;
+      }
+
+      .busqueda input:focus{
+        border-color: #c23e00; 
+        box-shadow: 0 0 5px rgba(219, 71, 0, 0.4);
+      }
+      
+    </style>
+  </head>
+
+  <body>
+    <h1>NeuroEmotion</h1>
+    <!--
+    <div class="graficas-container">
+      <div class="grafica">
+        <h3>Concepto</h3>
+        <div class="canvas-container">
+          <canvas id="grafica-concepto"></canvas>
+        </div>
+        <p class="progreso-texto">15/21 videos vistos</p>
+      </div>
+      <div class="grafica">
+        <h3>Prácticas</h3>
+        <div class="canvas-container">
+          <canvas id="grafica-practicas"></canvas>
+        </div>
+        <p class="progreso-texto">4/5 prácticas completadas</p>
+      </div>
+      <div class="grafica">
+        <h3>Práctica Final</h3>
+        <div class="canvas-container">
+          <canvas id="grafica-final"></canvas>
+        </div>
+        <p class="progreso-texto">0/1 práctica completada</p>
+      </div>
+    </div>
+  -->
+    <div class="filtros">
+      <select id="regionalFilter" onchange="filtrarUsuarios()">
+        <option value="Santander">Santander</option>
+        <option value="Cundinamarca">Cundinamarca</option>
+        <option value="Costa">Costa</option>
+        <option value="Cafetero">Cafetero</option>
+      </select>
+    </div>
+    <div class="busqueda">
+      <select id="opcionBusqueda" onchange="limpiarBusqueda()">
+        <option value="usuario">Usuario</option>
+        <option value="nombre">Nombre Completo</option>
+        <option value="telefono">Teléfono</option>
+        <option value="progreso">Progreso Total</option>
+      </select>
+      <input
+        type="text"
+        id="barraBusqueda"
+        placeholder="Buscar..."
+        onkeyup="buscarUsuarios()"
+      />
+    </div>
+    <div id="usuarios"></div>
+    <div id="modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="detalles-usuario"></div>
+      </div>
+    </div>
+
+    <script>
+      let todosLosUsuarios = [];
+
+      function crearGraficaTorta(id, completado, total) {
+        const ctx = document.getElementById(id).getContext("2d");
+        new Chart(ctx, {
+          type: "pie",
+          data: {
+            labels: ["Completado", "Pendiente"],
+            datasets: [
+              {
+                data: [completado, total - completado],
+                backgroundColor: ["#4CAF50", "#f3f3f3"],
+                borderColor: ["#4CAF50", "#e0e0e0"],
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: {
+              display: false,
+            },
+            tooltips: {
+              callbacks: {
+                label: function (tooltipItem, data) {
+                  const dataset = data.datasets[tooltipItem.datasetIndex];
+                  const total = dataset.data.reduce(
+                    (previousValue, currentValue) =>
+                      previousValue + currentValue
+                  );
+                  const currentValue = dataset.data[tooltipItem.index];
+                  const percentage = Math.round((currentValue / total) * 100);
+                  return `${data.labels[tooltipItem.index]}: ${percentage}%`;
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function crearGraficaTorta(id, completado, total) {
+        const ctx = document.getElementById(id).getContext("2d");
+        new Chart(ctx, {
+          type: "pie",
+          data: {
+            labels: ["Completado", "Pendiente"],
+            datasets: [
+              {
+                data: [completado, total - completado],
+                backgroundColor: ["#4CAF50", "#f3f3f3"],
+                borderColor: ["#4CAF50", "#e0e0e0"],
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: {
+              display: false,
+            },
+            tooltips: {
+              callbacks: {
+                label: function (tooltipItem, data) {
+                  const dataset = data.datasets[tooltipItem.datasetIndex];
+                  const total = dataset.data.reduce(
+                    (previousValue, currentValue) =>
+                      previousValue + currentValue
+                  );
+                  const currentValue = dataset.data[tooltipItem.index];
+                  const percentage = Math.round((currentValue / total) * 100);
+                  return `${data.labels[tooltipItem.index]}: ${percentage}%`;
+                },
+              },
+            },
+          },
+        });
+      }
+
+      async function obtenerUsuarios() {
+        try {
+          const response = await axios.get("/api/usuarios");
+          todosLosUsuarios = response.data;
+          filtrarUsuarios();
+
+          // Cálculo de progresos totales
+          let totalConceptosVistos = 0;
+          let totalPracticasCompletadas = 0;
+          let totalPracticaFinalCompletada = 0;
+
+          todosLosUsuarios.forEach((usuario) => {
+            totalConceptosVistos += usuario.contenidosVistos || 0;
+            totalPracticasCompletadas += usuario.practicasCompletadas || 0;
+            totalPracticaFinalCompletada +=
+              usuario.practicaFinalCompletada || 0;
+          }); // 1 práctica final por usuario
+
+          // Actualizar textos de progreso
+          document.querySelector(
+            "#grafica-concepto + .progreso-texto"
+          ).textContent = `${totalConceptosVistos}/${
+            todosLosUsuarios.length * 18
+          } videos vistos`;
+          document.querySelector(
+            "#grafica-practicas + .progreso-texto"
+          ).textContent = `${totalPracticasCompletadas}/${
+            todosLosUsuarios.length * 3
+          } prácticas completadas`;
+          document.querySelector(
+            "#grafica-final + .progreso-texto"
+          ).textContent = `${totalPracticaFinalCompletada}/${todosLosUsuarios.length} práctica final completada`;
+        } catch (error) {
+          console.error("Error al obtener usuarios:", error);
+          document.getElementById("usuarios").innerHTML =
+            "<p>Error al cargar los datos. Por favor, intente más tarde.</p>";
+        }
+      }
+
+      async function filtrarUsuarios() {
+        const regionalSeleccionada =
+          document.getElementById("regionalFilter").value;
+        let usuariosFiltrados;
+
+        if (regionalSeleccionada === "todos") {
+          usuariosFiltrados = todosLosUsuarios;
+        } else {
+          try {
+            const response = await axios.get(
+              `/api/usuarios/${regionalSeleccionada}`
+            );
+            usuariosFiltrados = response.data;
+          } catch (error) {
+            console.error("Error al obtener usuarios por regional:", error);
+            alert(
+              "Error al cargar los usuarios. Por favor, intente más tarde."
+            );
+            return;
+          }
+        }
+
+        const contenedor = document.getElementById("usuarios");
+        contenedor.innerHTML = "";
+
+        if (usuariosFiltrados.length > 0) {
+          const tabla = crearTabla(usuariosFiltrados);
+          contenedor.appendChild(tabla);
+        } else {
+          contenedor.innerHTML =
+            "<p>No se encontraron usuarios para esta regional.</p>";
+        }
+      }
+
+      function crearTabla(usuarios) {
+        const tabla = document.createElement("table");
+        const encabezado = document.createElement("thead");
+        const cuerpo = document.createElement("tbody");
+
+        const filaColumnas = document.createElement("tr");
+        filaColumnas.innerHTML = `
+    <th>#</th>
+    <th>Usuario</th>
+    <th>Nombre Completo</th>
+    <th>Regional</th>
+    <th>Teléfono</th>
+    <th>Progreso Total</th>
+    <th>Acciones</th>
+  `;
+        encabezado.appendChild(filaColumnas);
+
+        usuarios.forEach((usuario, index) => {
+          const fila = document.createElement("tr");
+          fila.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${usuario.user || "N/A"}</td>
+      <td>${usuario.fullName || "N/A"}</td>
+      <td>${usuario.regional || "N/A"}</td>
+      <td>${usuario.celphone || "N/A"}</td>
+      <td>${usuario.score || "0"}</td>
+      <td><button class="mas-info" onclick="mostrarDetalles('${
+        usuario._id
+      }')">Más información</button></td>
+    `;
+          cuerpo.appendChild(fila);
+        });
+
+        tabla.appendChild(encabezado);
+        tabla.appendChild(cuerpo);
+        return tabla;
+      }
+
+      async function mostrarDetalles(userId) {
+        try {
+          const response = await axios.get(`/api/usuario/${userId}`);
+          const usuario = response.data;
+
+          let contenidosVistos = 0;
+          let practicasCompletadas = 0;
+          let practicaFinalCompletada = 0;
+
+          const esPractica = (titulo) => {
+            const tituloLower = titulo.toLowerCase();
+            return (
+              tituloLower.includes("llega el momento de ir a la acción") ||
+              tituloLower.includes("lleva a la acción") ||
+              tituloLower.includes("práctica")
+            );
+          };
+
+          const esPracticaFinal = (titulo) => {
+            return titulo.toLowerCase().includes("mundo neuroemotion");
+          };
+
+          usuario.entrenamientos.forEach((entrenamiento) => {
+            if (esPracticaFinal(entrenamiento.entrenamientoTitle)) {
+              if (entrenamiento.contenido.some((item) => item.valor >= 50)) {
+                practicaFinalCompletada = 1;
+              }
+            } else if (esPractica(entrenamiento.entrenamientoTitle)) {
+              if (entrenamiento.contenido.some((item) => item.valor >= 50)) {
+                practicasCompletadas++;
+              }
+            } else {
+              contenidosVistos += entrenamiento.contenido.filter(
+                (item) => item.valor >= 50
+              ).length;
+            }
+          });
+
+          // Cálculo de porcentajes
+          const porcentajeVideos = (contenidosVistos / 18) * 20;
+          const porcentajePracticas = (practicasCompletadas / 3) * 50;
+          const porcentajePracticaFinal = practicaFinalCompletada * 30;
+          const porcentajeTotal =
+            porcentajeVideos + porcentajePracticas + porcentajePracticaFinal;
+
+          let detallesHTML = `
+      <h2>Detalles de ${usuario.fullName}</h2>
+      <p><strong>Usuario:</strong> ${usuario.user}</p>
+      <p><strong>Regional:</strong> ${usuario.regional}</p>
+      <h3>Progreso Total: ${porcentajeTotal.toFixed(2)}%</h3>
+      
+      <h3>Resumen de Progreso</h3>
+      <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
+          <div>
+              <h4>Contenidos Vistos (20%)</h4>
+              <p>${contenidosVistos} / 18</p>
+              <p>Progreso: ${porcentajeVideos.toFixed(2)}%</p>
+          </div>
+          <div>
+              <h4>Prácticas Completadas (50%)</h4>
+              <p>${practicasCompletadas} / 3</p>
+              <p>Progreso: ${porcentajePracticas.toFixed(2)}%</p>
+          </div>
+          <div>
+              <h4>Práctica Final Mundo NeuroEmotion (30%)</h4>
+              <p>${practicaFinalCompletada} / 1</p>
+              <p>Progreso: ${porcentajePracticaFinal.toFixed(2)}%</p>
+          </div>
+      </div>
+
+      <h3>Entrenamientos</h3>
+      <table>
+          <thead>
+              <tr>
+                  <th>Entrenamiento</th>
+                  <th>Tipo</th>
+                  <th>Contenidos Completados</th>
+                  <th>Detalles</th>
+              </tr>
+          </thead>
+          <tbody>
+    `;
+
+          usuario.entrenamientos.forEach((entrenamiento) => {
+            let tipo = "Contenido";
+            if (esPractica(entrenamiento.entrenamientoTitle)) {
+              tipo = "Práctica";
+            } else if (esPracticaFinal(entrenamiento.entrenamientoTitle)) {
+              tipo = "Práctica Final";
+            }
+
+            const contenidosCompletados = entrenamiento.contenido.filter(
+              (item) => item.valor >= 50
+            ).length;
+
+            detallesHTML += `
+          <tr>
+              <td>${entrenamiento.entrenamientoTitle || "N/A"}</td>
+              <td>${tipo}</td>
+              <td>${contenidosCompletados} / ${
+              entrenamiento.contenido.length
+            }</td>
+              <td>
+                  <table class="subtable">
+                      <thead>
+                          <tr>
+                              <th>Título</th>
+                              <th>Valor</th>
+                              <th>Estado</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+      `;
+
+            entrenamiento.contenido.forEach((item) => {
+              const estado = item.valor >= 50 ? "Completado" : "Pendiente";
+              detallesHTML += `
+              <tr>
+                  <td>${item.title || "N/A"}</td>
+                  <td>${item.valor || "0"}</td>
+                  <td>${estado}</td>
+              </tr>
+          `;
+            });
+
+            detallesHTML += `
+                      </tbody>
+                  </table>
+              </td>
+          </tr>
+      `;
+          });
+
+          detallesHTML += `
+          </tbody>
+      </table>
+    `;
+
+          document.getElementById("detalles-usuario").innerHTML = detallesHTML;
+          document.getElementById("modal").style.display = "block";
+        } catch (error) {
+          console.error("Error al obtener detalles del usuario:", error);
+          alert(
+            "Error al cargar los detalles del usuario. Por favor, intente más tarde."
+          );
+        }
+      }
+
+      // Cerrar el modal
+      document.querySelector(".close").onclick = function () {
+        document.getElementById("modal").style.display = "none";
+      };
+
+      window.onclick = function (event) {
+        if (event.target == document.getElementById("modal")) {
+          document.getElementById("modal").style.display = "none";
+        }
+      };
+
+      window.onload = obtenerUsuarios;
+
+      function buscarUsuarios() {
+        let input = document.getElementById('barraBusqueda').value.toLowerCase();
+        let usuarios = document.getElementById('usuarios').getElementsByTagName('tr');
+        let opcionBusqueda = document.getElementById('opcionBusqueda').value;
+
+        let columnaBusqueda;
+        switch(opcionBusqueda) {
+          case 'usuario':
+            columnaBusqueda = 1;
+            columnaBusqueda = 1;
+            break;
+          case 'nombre':
+            columnaBusqueda = 2; // Tercera columna es Nombre completo
+            break;
+          case 'telefono':
+            columnaBusqueda = 4; // Quinta columna es Teléfono
+            break;
+          case 'progreso':
+            columnaBusqueda = 5; // Sexta columna es Progreso total
+            break;
+          default:
+            columnaBusqueda = 1;
+        }
+
+        for (let i = 0; i < usuarios.length; i++) {
+          let columnas = usuarios[i].getElementsByTagName('td');
+          if (columnas[columnaBusqueda]) {
+            let texto = columnas[columnaBusqueda].textContent || columnas[columnaBusqueda].innerText;
+            if (texto.toLowerCase().indexOf(input) > -1) {
+              usuarios[i].style.display = "";
+            }else{
+              usuarios[i].style.display = "none";
+            }
+          }
+        }
+      }
+
+      function limpiarBusqueda(){
+        document.getElementById('barraBusqueda').value = '';
+        buscarUsuarios();
+      }
+      
+    </script>
+  </body>
+</html>
